@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboards Power BI</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-color: #f5f5f5;
+            --container-bg: #fff;
+            --text-color: #333;
+            --heading-color: #2c3e50;
+            --button-bg: #3498db;
+            --button-hover: #2980b9;
+            --button-text: white;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --tab-active-bg: #3498db;
+            --tab-active-text: white;
+            --tab-inactive-bg: #f0f0f0;
+            --tab-inactive-text: #555;
+            --transition-speed: 0.5s;
+        }
+
+        .dark-theme {
+            --bg-color: #1a1a1a;
+            --container-bg: #2c2c2c;
+            --text-color: #e0e0e0;
+            --heading-color: #f0f0f0;
+            --button-bg: #2980b9;
+            --button-hover: #3498db;
+            --button-text: white;
+            --border-color: #444;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --tab-active-bg: #2980b9;
+            --tab-active-text: white;
+            --tab-inactive-bg: #3a3a3a;
+            --tab-inactive-text: #ccc;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            padding: 20px;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--heading-color);
+            transition: color var(--transition-speed);
+        }
+
+        /* Container for the dashboard */
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            padding: 20px;
+            overflow: hidden;
+            transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
+        }
+
+        /* Responsive iframe wrapper with aspect ratio preservation */
+        .responsive-iframe-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio (9/16 = 0.5625) */
+            overflow: hidden;
+            display: none; /* Hide all by default */
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0;
+        }
+
+        .responsive-iframe-container.active {
+            display: block; /* Show only active */
+            opacity: 1;
+        }
+
+        /* Style for the iframe */
+        .responsive-iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Loading indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-color);
+            transition: color var(--transition-speed);
+            z-index: 10;
+        }
+
+        .loading-spinner {
+            border: 5px solid var(--border-color);
+            border-top: 5px solid var(--button-bg);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 10px;
+            transition: border-color var(--transition-speed);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Media queries for better responsiveness */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 15px;
+            }
+            
+            /* Adjust aspect ratio for mobile */
+            .responsive-iframe-container {
+                padding-bottom: 75%; /* 4:3 Aspect Ratio for mobile */
+            }
+            
+            .dashboard-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab-button {
+                flex: 1 0 calc(50% - 5px);
+                margin-bottom: 5px;
+                font-size: 0.9rem;
+                padding: 8px 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .dashboard-container {
+                padding: 5px;
+            }
+            
+            h1 {
+                font-size: 1.2rem;
+                margin-bottom: 10px;
+            }
+            
+            .tab-button {
+                flex: 1 0 100%;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Controls for fullscreen and other options */
+        .dashboard-controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .control-button {
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .control-button:hover {
+            background-color: var(--button-hover);
+            transform: translateY(-2px);
+        }
+
+        .control-button:active {
+            transform: translateY(0);
+        }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            margin-right: auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theme-toggle-icon {
+            margin-right: 5px;
+            display: inline-block;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .theme-toggle:hover .theme-toggle-icon {
+            transform: rotate(360deg);
+        }
+
+        /* Theme toggle animation */
+        .theme-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .theme-animation.active {
+            opacity: 1;
+        }
+
+        .theme-animation.to-dark {
+            background: radial-gradient(circle at var(--x) var(--y), rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+            animation: expandDark 0.5s forwards;
+        }
+
+        .theme-animation.to-light {
+            background: radial-gradient(circle at var(--x) var(--y), rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 100%);
+            animation: expandLight 0.5s forwards;
+        }
+
+        @keyframes expandDark {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(4);
+                opacity: 1;
+            }
+        }
+
+        @keyframes expandLight {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(4);
+                opacity: 1;
+            }
+        }
+
+        /* Dashboard tabs */
+        .dashboard-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            transition: border-color var(--transition-speed);
+        }
+
+        .tab-button {
+            padding: 10px 15px;
+            background-color: var(--tab-inactive-bg);
+            color: var(--tab-inactive-text);
+            border: none;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+            font-weight: 500;
+            transition: background-color 0.3s, color 0.3s, transform 0.2s;
+        }
+
+        .tab-button:hover {
+            transform: translateY(-3px);
+        }
+
+        .tab-button.active {
+            background-color: var(--tab-active-bg);
+            color: var(--tab-active-text);
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-animation"></div>
+    
+    <div class="dashboard-container">
+        <h1>CV - PROYECTOS - KEVIN LEANDRO</h1>
+        
+        <div class="dashboard-controls">
+            <button id="theme-toggle" class="control-button theme-toggle">
+                <span class="theme-toggle-icon">🌙</span>
+                <span class="theme-toggle-text">Modo Oscuro</span>
+            </button>
+            <button id="fullscreen-btn" class="control-button">Pantalla Completa</button>
+            <button id="refresh-btn" class="control-button">Actualizar</button>
+        </div>
+        
+        <div class="dashboard-tabs">
+            <button id="tab-retail" class="tab-button active">Dashboard BCRP</button>
+            <button id="tab-starbucks" class="tab-button">Dashboard Starbucks</button>
+            <button id="tab-tibo" class="tab-button">Dashboard Retail</button>
+            <button id="tab-sis" class="tab-button">Dashboard SIS</button>
+        </div>
+        
+        <!-- Retail Dashboard -->
+        <div id="dashboard-retail" class="responsive-iframe-container active">
+            <div id="loading-retail" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Cargando dashboard Retail...</p>
+            </div>
+            
+            <iframe 
+                id="power-bi-iframe-retail"
+                title="Dashboard_Retail_py" 
+                src="https://app.powerbi.com/view?r=eyJrIjoiOWE2YTFmOTUtMTExZS00YWJlLWJmMmQtNTFhZjVhMmRkYThlIiwidCI6ImM0YTY2YzM0LTJiYjctNDUxZi04YmUxLWIyYzI2YTQzMDE1OCIsImMiOjR9" 
+                allowFullScreen="true">
+            </iframe>
+        </div>
+        
+        <!-- Starbucks Dashboard -->
+        <div id="dashboard-starbucks" class="responsive-iframe-container">
+            <div id="loading-starbucks" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Cargando dashboard Starbucks...</p>
+            </div>
+            
+            <iframe 
+                id="power-bi-iframe-starbucks"
+                title="Dashboard_Starbucks" 
+                src="https://app.powerbi.com/view?r=eyJrIjoiMWVhYWYxOTMtZTMxOS00YjgyLWJiYjUtNjk1ZGU4ZWNhMTdjIiwidCI6ImM0YTY2YzM0LTJiYjctNDUxZi04YmUxLWIyYzI2YTQzMDE1OCIsImMiOjR9" 
+                allowFullScreen="true">
+            </iframe>
+        </div>
+        
+        <!-- TIBO Dashboard -->
+        <div id="dashboard-tibo" class="responsive-iframe-container">
+            <div id="loading-tibo" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Cargando TASA INTERBANCARIA OVERNIGHT...</p>
+            </div>
+            
+            <iframe 
+                id="power-bi-iframe-tibo"
+                title="TASA INTERBANCARIA OVERNIGHT (TIBO) EN MONEDA NACIONAL Actualizable" 
+                src="https://app.powerbi.com/view?r=eyJrIjoiNWUxODk0ZDctMTE5Zi00NDExLThlM2QtOTg3OWQ1M2U1MjI0IiwidCI6ImM0YTY2YzM0LTJiYjctNDUxZi04YmUxLWIyYzI2YTQzMDE1OCIsImMiOjR9" 
+                allowFullScreen="true">
+            </iframe>
+        </div>
+        
+        <!-- SIS Dashboard -->
+        <div id="dashboard-sis" class="responsive-iframe-container">
+            <div id="loading-sis" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Cargando Datos de Afiliados al Seguro Integral de Salud...</p>
+            </div>
+            
+            <iframe 
+                id="power-bi-iframe-sis"
+                title="Datos de Afiliados al Seguro Integral de Salud en Estado Activo - [SIS] Distrito Jesus Maria" 
+                src="https://app.powerbi.com/view?r=eyJrIjoiNTBjYmJkYTUtZmRmOS00MzA4LThkYjAtZWQ0ZjExMjFhZmVlIiwidCI6ImM0YTY2YzM0LTJiYjctNDUxZi04YmUxLWIyYzI2YTQzMDE1OCIsImMiOjR9" 
+                allowFullScreen="true">
+            </iframe>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get elements
+            const iframeRetail = document.getElementById('power-bi-iframe-retail');
+            const iframeStarbucks = document.getElementById('power-bi-iframe-starbucks');
+            const iframeTibo = document.getElementById('power-bi-iframe-tibo');
+            const iframeSis = document.getElementById('power-bi-iframe-sis');
+            
+            const loadingRetail = document.getElementById('loading-retail');
+            const loadingStarbucks = document.getElementById('loading-starbucks');
+            const loadingTibo = document.getElementById('loading-tibo');
+            const loadingSis = document.getElementById('loading-sis');
+            
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeAnimation = document.querySelector('.theme-animation');
+            
+            const tabRetail = document.getElementById('tab-retail');
+            const tabStarbucks = document.getElementById('tab-starbucks');
+            const tabTibo = document.getElementById('tab-tibo');
+            const tabSis = document.getElementById('tab-sis');
+            
+            const dashboardRetail = document.getElementById('dashboard-retail');
+            const dashboardStarbucks = document.getElementById('dashboard-starbucks');
+            const dashboardTibo = document.getElementById('dashboard-tibo');
+            const dashboardSis = document.getElementById('dashboard-sis');
+            
+            // Theme toggle functionality with animation
+            function setTheme(isDark, animate = false, x = 0, y = 0) {
+                if (animate) {
+                    // Set animation position
+                    themeAnimation.style.setProperty('--x', x + 'px');
+                    themeAnimation.style.setProperty('--y', y + 'px');
+                    
+                    // Add appropriate animation class
+                    themeAnimation.classList.add(isDark ? 'to-dark' : 'to-light');
+                    themeAnimation.classList.add('active');
+                    
+                    // Remove animation classes after animation completes
+                    setTimeout(() => {
+                        themeAnimation.classList.remove('active', 'to-dark', 'to-light');
+                    }, 500);
+                }
+                
+                if (isDark) {
+                    document.body.classList.add('dark-theme');
+                    themeToggle.querySelector('.theme-toggle-icon').textContent = '☀️';
+                    themeToggle.querySelector('.theme-toggle-text').textContent = 'Modo Claro';
+                } else {
+                    document.body.classList.remove('dark-theme');
+                    themeToggle.querySelector('.theme-toggle-icon').textContent = '🌙';
+                    themeToggle.querySelector('.theme-toggle-text').textContent = 'Modo Oscuro';
+                }
+                localStorage.setItem('darkTheme', isDark);
+            }
+            
+            // Check for saved theme preference
+            const savedTheme = localStorage.getItem('darkTheme');
+            if (savedTheme === 'true') {
+                setTheme(true);
+            }
+            
+            themeToggle.addEventListener('click', function(e) {
+                const isDarkMode = document.body.classList.contains('dark-theme');
+                // Get click position for animation origin
+                const x = e.clientX;
+                const y = e.clientY;
+                setTheme(!isDarkMode, true, x, y);
+            });
+            
+            // Tab switching functionality
+            function setActiveTab(tabId) {
+                // Update tab buttons
+                tabRetail.classList.toggle('active', tabId === 'retail');
+                tabStarbucks.classList.toggle('active', tabId === 'starbucks');
+                tabTibo.classList.toggle('active', tabId === 'tibo');
+                tabSis.classList.toggle('active', tabId === 'sis');
+                
+                // Update dashboard visibility
+                dashboardRetail.classList.toggle('active', tabId === 'retail');
+                dashboardStarbucks.classList.toggle('active', tabId === 'starbucks');
+                dashboardTibo.classList.toggle('active', tabId === 'tibo');
+                dashboardSis.classList.toggle('active', tabId === 'sis');
+                
+                // Save preference
+                localStorage.setItem('activeTab', tabId);
+                
+                // Update fullscreen button target
+                switch(tabId) {
+                    case 'retail':
+                        currentDashboard = dashboardRetail;
+                        break;
+                    case 'starbucks':
+                        currentDashboard = dashboardStarbucks;
+                        break;
+                    case 'tibo':
+                        currentDashboard = dashboardTibo;
+                        break;
+                    case 'sis':
+                        currentDashboard = dashboardSis;
+                        break;
+                }
+            }
+            
+            // Check for saved tab preference
+            let currentDashboard = dashboardRetail;
+            const savedTab = localStorage.getItem('activeTab');
+            if (savedTab) {
+                setActiveTab(savedTab);
+            }
+            
+            // Tab click handlers
+            tabRetail.addEventListener('click', function() {
+                setActiveTab('retail');
+            });
+            
+            tabStarbucks.addEventListener('click', function() {
+                setActiveTab('starbucks');
+            });
+            
+            tabTibo.addEventListener('click', function() {
+                setActiveTab('tibo');
+            });
+            
+            tabSis.addEventListener('click', function() {
+                setActiveTab('sis');
+            });
+            
+            // Hide loading indicators when iframes are loaded
+            iframeRetail.onload = function() {
+                loadingRetail.style.display = 'none';
+            };
+            
+            iframeStarbucks.onload = function() {
+                loadingStarbucks.style.display = 'none';
+            };
+            
+            iframeTibo.onload = function() {
+                loadingTibo.style.display = 'none';
+            };
+            
+            iframeSis.onload = function() {
+                loadingSis.style.display = 'none';
+            };
+            
+            // Fullscreen functionality
+            fullscreenBtn.addEventListener('click', function() {
+                if (currentDashboard.requestFullscreen) {
+                    currentDashboard.requestFullscreen();
+                } else if (currentDashboard.webkitRequestFullscreen) { /* Safari */
+                    currentDashboard.webkitRequestFullscreen();
+                } else if (currentDashboard.msRequestFullscreen) { /* IE11 */
+                    currentDashboard.msRequestFullscreen();
+                }
+            });
+            
+            // Refresh functionality
+            refreshBtn.addEventListener('click', function() {
+                let currentLoading, currentIframe;
+                
+                if (currentDashboard === dashboardRetail) {
+                    currentLoading = loadingRetail;
+                    currentIframe = iframeRetail;
+                } else if (currentDashboard === dashboardStarbucks) {
+                    currentLoading = loadingStarbucks;
+                    currentIframe = iframeStarbucks;
+                } else if (currentDashboard === dashboardTibo) {
+                    currentLoading = loadingTibo;
+                    currentIframe = iframeTibo;
+                } else if (currentDashboard === dashboardSis) {
+                    currentLoading = loadingSis;
+                    currentIframe = iframeSis;
+                }
+                
+                if (currentLoading && currentIframe) {
+                    currentLoading.style.display = 'block';
+                    currentIframe.src = currentIframe.src;
+                }
+            });
+            
+            // Adjust iframe height based on window size
+            function adjustIframeSize() {
+                // This function can be expanded if you need custom sizing logic
+                // The CSS handles most of the responsive behavior
+            }
+            
+            // Initial adjustment and listen for resize events
+            adjustIframeSize();
+            window.addEventListener('resize', adjustIframeSize);
+            
+            // Handle orientation change on mobile devices
+            window.addEventListener('orientationchange', function() {
+                setTimeout(adjustIframeSize, 200); // Small delay to ensure orientation has completed
+            });
+        });
+    </script>
+</body>
+</html>
